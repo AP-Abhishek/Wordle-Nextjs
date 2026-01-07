@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import WordLine from "./WordLine";
+import Keyboard from "./Keyboard";
 import { fetchTarget } from "../api/target";
 
 const TRIES: number = 5;
@@ -23,60 +24,93 @@ export default function Board() {
     getTarget();
   }, []);
 
+  /* New Logic for handling input */
+  const handleInput = (key: string) => {
+    if (gameOver) return;
+
+    if (key === 'Enter') {
+      if (currentGuess.length < MAX_WORD_LENGTH) return;
+
+      const newGuess = [...guesses];
+      newGuess[guessIdx] = currentGuess.toUpperCase();
+      setGuesses(newGuess);
+
+      const newChecked = [...checked];
+      newChecked[guessIdx] = true;
+      setChecked(newChecked);
+
+      if (currentGuess.toUpperCase() === target.toUpperCase()) {
+        setGameOver(true);
+      } else if (guessIdx === TRIES - 1) {
+        setGameOver(true);
+      }
+
+      setGuessIdx(prev => prev + 1);
+      setCurrentGuess("");
+      return;
+    }
+
+    if (key === 'Backspace') {
+      setCurrentGuess(prev => prev.slice(0, -1));
+      return;
+    }
+
+    if (currentGuess.length < MAX_WORD_LENGTH && /^[a-zA-Z]$/.test(key)) {
+      setCurrentGuess(prev => (prev + key).toUpperCase());
+    }
+  };
+
   useEffect(() => {
     const handleKeys = (event: KeyboardEvent) => {
-      if (gameOver) return;
-
-      const key = event.key;
-
-      if (key === 'Enter') {
-        if (currentGuess.length < MAX_WORD_LENGTH) return;
-
-        const newGuess = [...guesses];
-        newGuess[guessIdx] = currentGuess.toUpperCase();
-        setGuesses(newGuess);
-
-        const newChecked = [...checked];
-        newChecked[guessIdx] = true;
-        setChecked(newChecked);
-
-        if (currentGuess.toUpperCase() === target.toUpperCase()) {
-          setGameOver(true);
-        } else if (guessIdx === TRIES - 1) {
-          setGameOver(true);
-        }
-
-        setGuessIdx(prev => prev + 1);
-        setCurrentGuess("");
-        return;
-      }
-
-      if (key === 'Backspace') {
-        setCurrentGuess(prev => prev.slice(0, -1));
-        return;
-      }
-
-      if (currentGuess.length < MAX_WORD_LENGTH && /^[a-zA-Z]$/.test(key)) {
-        setCurrentGuess(prev => (prev + key).toUpperCase());
-      }
+      handleInput(event.key);
     };
 
     window.addEventListener("keydown", handleKeys);
     return () => window.removeEventListener("keydown", handleKeys);
   }, [currentGuess, guesses, guessIdx, gameOver, target, checked]);
 
+  // Calculate character statuses for keyboard
+  const getCharStatuses = () => {
+    const statuses: Record<string, string> = {};
+
+    guesses.forEach((guess, idx) => {
+      if (!checked[idx] || !guess) return;
+
+      const targetArr = target.split('');
+      const guessArr = guess.split('');
+
+      guessArr.forEach((char, i) => {
+        if (!statuses[char] || statuses[char] !== 'green') {
+          if (targetArr[i] === char) {
+            statuses[char] = 'green';
+          } else if (target.includes(char)) {
+            statuses[char] = 'yellow';
+          } else {
+            statuses[char] = 'gray';
+          }
+        }
+      });
+    });
+    return statuses;
+  };
+
   return (
     <>
-      <div className="m-8 p-1 bg-[#7a5d25aa] inline-block">
-        {guesses.map((guess, idx) => (
-          <WordLine
-            key={idx}
-            guess={idx === guessIdx ? currentGuess : guess}
-            word_length={MAX_WORD_LENGTH}
-            target={target}
-            check_color={checked[idx]}
-          />
-        ))}
+      <div className="m-8 flex flex-col md:flex-row items-center md:items-center justify-center md:gap-20 gap-8 w-full max-w-5xl px-2">
+        <div className="p-1 bg-[#7a5d25aa] inline-block rounded-lg shadow-lg">
+          {guesses.map((guess, idx) => (
+            <WordLine
+              key={idx}
+              guess={idx === guessIdx ? currentGuess : guess}
+              word_length={MAX_WORD_LENGTH}
+              target={target}
+              check_color={checked[idx]}
+            />
+          ))}
+        </div>
+        <div className="w-full max-w-lg md:max-w-md">
+          <Keyboard onKey={handleInput} charStatuses={getCharStatuses()} />
+        </div>
       </div>
 
       {gameOver && (

@@ -42,7 +42,7 @@ export default function WordLine({ guess, word_length, target, check_color }: Wo
       {letters.map((letter, idx) => (
         <div
           key={idx}
-          className={`m-1 h-16 w-16 flex items-center justify-center text-2xl font-bold uppercase border border-stone-900 transition-colors duration-300 ${check_color ? statuses[idx] : "bg-gray-200 text-black"}`}
+          className={`m-0.5 h-12 w-12 md:m-1 md:h-16 md:w-16 flex items-center justify-center text-xl md:text-2xl font-bold uppercase border border-stone-900 transition-colors duration-300 ${check_color ? statuses[idx] : "bg-gray-200 text-black"}`}
         >
           {letter}
         </div>
